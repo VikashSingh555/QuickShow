@@ -9,20 +9,16 @@ import { inngest, functions } from "./inngest/index.js";
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Connect DB ONCE at startup (very important for Vercel)
-await connectDB();
-
 // Middlewares
 app.use(express.json());
 app.use(cors());
 app.use(clerkMiddleware());
 
-// Test route
+// Routes
 app.get("/", (req, res) => {
   res.send("Server is Live!");
 });
 
-// Inngest route
 app.use(
   "/api/inngest",
   serve({
@@ -31,12 +27,22 @@ app.use(
   })
 );
 
-// Start server only in local (not on Vercel)
-if (process.env.NODE_ENV !== "production") {
-  app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
-  });
-}
+// Proper startup function
+const startServer = async () => {
+  try {
+    await connectDB();
+    console.log("Database connected");
 
-// Export for Vercel
+    if (process.env.NODE_ENV !== "production") {
+      app.listen(port, () => {
+        console.log(`Server listening at http://localhost:${port}`);
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+startServer();
+
 export default app;
