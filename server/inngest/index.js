@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import User from "../models/User.js";
+import connectDB from "../configs/db.js";
 
 export const inngest = new Inngest({ id: "movie-ticket-booking" });
 
@@ -7,32 +8,37 @@ export const inngest = new Inngest({ id: "movie-ticket-booking" });
 const syncUserCreation = inngest.createFunction(
   {
     id: "sync-user-from-clerk",
-    triggers: { event: "clerk/user.created" },
+    triggers: [{ event: "clerk/user.created" }],
   },
   async ({ event }) => {
+    await connectDB(); // DB connect
+
     const { id, first_name, last_name, email_addresses, image_url } =
       event.data;
 
-    const userData = {
-      _id: id,
-      email: email_addresses[0].email_address,
-      name: first_name + " " + last_name,
-      image: image_url,
-    };
-
-    await User.create(userData);
+    await User.findByIdAndUpdate(
+      id,
+      {
+        _id: id,
+        email: email_addresses[0].email_address,
+        name: first_name + " " + last_name,
+        image: image_url,
+      },
+      { upsert: true }
+    );
   }
 );
 
-// delete user
+//  delete user
 const syncUserDeletion = inngest.createFunction(
   {
     id: "delete-user-with-clerk",
-    triggers: { event: "clerk/user.deleted" },
+    triggers: [{ event: "clerk/user.deleted" }],
   },
   async ({ event }) => {
-    const { id } = event.data;
-    await User.findByIdAndDelete(id);
+    await connectDB();
+
+    await User.findByIdAndDelete(event.data.id);
   }
 );
 
@@ -40,20 +46,24 @@ const syncUserDeletion = inngest.createFunction(
 const syncUserUpdation = inngest.createFunction(
   {
     id: "update-user-from-clerk",
-    triggers: { event: "clerk/user.updated" },
+    triggers: [{ event: "clerk/user.updated" }],
   },
   async ({ event }) => {
+    await connectDB();
+
     const { id, first_name, last_name, email_addresses, image_url } =
       event.data;
 
-    const userData = {
-      _id: id,
-      email: email_addresses[0].email_address,
-      name: first_name + " " + last_name,
-      image: image_url,
-    };
-
-    await User.findByIdAndUpdate(id, userData);
+    await User.findByIdAndUpdate(
+      id,
+      {
+        _id: id,
+        email: email_addresses[0].email_address,
+        name: first_name + " " + last_name,
+        image: image_url,
+      },
+      { upsert: true }
+    );
   }
 );
 
